@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Lupon Tagapamayapa App</title>
+  <meta name="theme-color" content="#1976d2">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="img/icon-192.png" sizes="192x192">
+  <link rel="apple-touch-icon" href="img/icon-192.png">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <img src="img/icon-192.png" alt="Logo" class="logo">
+    <div class="titles">
+      <h1>Lupon Tagapamayapa</h1>
+      <p>Barangay Sampaguita – Files</p>
+    </div>
+    <button id="installBtn" class="install-btn" hidden>Install</button>
+  </header>
+
+  <main>
+    <div class="search-row">
+      <input id="search" type="search" placeholder="Search files…" aria-label="Search files">
+    </div>
+    <ul id="fileList" class="file-list" aria-live="polite"></ul>
+    <p class="hint">
+      Tip: Tap a file to open it with your phone’s viewer (Google Docs / Microsoft 365).
+    </p>
+  </main>
+
+  <footer>
+    <small>v1 • Works offline after first open • Add/Remove files by updating the repository</small>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,15 @@
+*{box-sizing:border-box}html,body{margin:0;padding:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;background:#f6f7fb;color:#0d1b2a}
+.topbar{display:flex;align-items:center;gap:.75rem;padding:.75rem 1rem;background:#1976d2;color:#fff;position:sticky;top:0}
+.logo{width:48px;height:48px;border-radius:12px;background:#fff}
+.titles h1{margin:.1rem 0;font-size:1.25rem}
+.titles p{margin:.1rem 0;opacity:.95;font-size:.9rem}
+.install-btn{margin-left:auto;background:#fff;color:#1976d2;border:none;padding:.5rem .75rem;border-radius:.6rem;font-weight:600}
+.search-row{padding:1rem}
+#search{width:100%;padding:.8rem 1rem;border-radius:12px;border:1px solid #c5cee0;font-size:1rem;background:#fff}
+.file-list{list-style:none;margin:0;padding:0 1rem 1rem 1rem;display:grid;gap:.5rem}
+.file-item{background:#fff;border:1px solid #e3e8f5;border-radius:14px;padding:.9rem 1rem;display:flex;align-items:center;gap:.75rem}
+.file-item .thumb{flex:0 0 40px;height:40px;border-radius:10px;background:#e8f0fe;display:flex;align-items:center;justify-content:center;font-weight:700}
+.file-item a{color:#0d47a1;text-decoration:none;font-weight:600}
+.file-item small{display:block;color:#4d5b7c}
+.hint{opacity:.8;text-align:center;padding:0 1rem}
+footer{padding:1rem;text-align:center;color:#5b6b8c}

@@ -1,0 +1,835 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#0b2545">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>Grid Rescue</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bungee&family=Lexend:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  /* One visual world: blueprint graph paper. Orange = action/x-axis, yellow = stars/y-axis, mint = correct. */
+  --ink:#0b2545; --ink-2:#123a63; --line:rgba(170,210,255,.14);
+  --chalk:#eaf4ff; --muted:#a8c3e2;
+  --signal:#ff8a3d; --sun:#ffd23f; --good:#5be3b0; --bad:#ff6b7f;
+  --display:"Bungee","Impact","Arial Black",system-ui,sans-serif;
+  --body:"Lexend","Segoe UI",system-ui,sans-serif;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%}
+body{
+  background-color:var(--ink); color:var(--chalk); font-family:var(--body); font-size:16px;
+  background-image:linear-gradient(var(--line) 1px,transparent 1px),linear-gradient(90deg,var(--line) 1px,transparent 1px);
+  background-size:24px 24px;
+}
+button{font-family:inherit;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+:focus-visible{outline:3px solid var(--sun);outline-offset:2px}
+
+/* top bar */
+.top{position:sticky;top:0;z-index:5;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;
+  padding:10px 20px;background:rgba(11,37,69,.92);border-bottom:2px solid rgba(234,244,255,.15)}
+.logo{font-family:var(--display);font-size:22px;color:var(--chalk);background:none;border:0;cursor:pointer;
+  text-shadow:3px 3px 0 var(--signal);padding:4px 0}
+.hud-top{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.pill{font-weight:600;font-size:14px;padding:6px 12px;border-radius:999px;border:1.5px solid rgba(234,244,255,.25);
+  font-variant-numeric:tabular-nums;background:transparent;color:var(--chalk)}
+.pill.star{color:var(--sun);border-color:rgba(255,210,63,.5)}
+button.pill{cursor:pointer}
+
+main{max-width:1100px;margin:0 auto;padding:22px 16px 56px}
+
+/* home */
+.hero{display:grid;grid-template-columns:1.15fr 1fr;gap:28px;align-items:center}
+.eyebrow{font-weight:800;text-transform:uppercase;letter-spacing:.14em;font-size:13px;color:var(--signal);margin:0 0 10px}
+.title{font-family:var(--display);font-weight:400;font-size:clamp(52px,10vw,104px);line-height:.88;margin:0;
+  text-shadow:6px 6px 0 var(--signal);text-wrap:balance}
+.lede{font-size:19px;line-height:1.5;max-width:46ch;color:var(--chalk);margin:18px 0}
+.namebox{display:flex;flex-direction:column;gap:6px;max-width:320px}
+.namebox label{font-size:13px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.1em}
+.namebox input{font:600 18px var(--body);padding:10px 14px;border-radius:10px;border:2px solid rgba(234,244,255,.3);
+  background:rgba(0,0,0,.25);color:var(--chalk)}
+.rule{margin:10px 6px 4px;font-size:17px;line-height:1.45}
+.sec{font-family:var(--display);font-weight:400;font-size:26px;margin:40px 0 14px;display:flex;flex-wrap:wrap;gap:6px 16px;align-items:baseline}
+.sec small{font-family:var(--body);font-size:15px;font-weight:600;color:var(--muted)}
+.missions{display:grid;grid-template-columns:repeat(auto-fit,minmax(196px,1fr));gap:14px}
+.card{text-align:left;background:var(--ink-2);border:2px solid rgba(234,244,255,.18);border-radius:14px;padding:16px;
+  color:var(--chalk);cursor:pointer;display:flex;flex-direction:column;gap:8px;transition:transform .15s,border-color .15s}
+.card:hover{transform:translateY(-3px);border-color:var(--signal)}
+.card.locked{opacity:.5;cursor:not-allowed;transform:none;border-style:dashed}
+.card .num{font-family:var(--display);color:var(--signal);font-size:13px}
+.card h3{font-family:var(--display);font-weight:400;font-size:21px;margin:0}
+.card p{margin:0;font-size:14px;line-height:1.4;color:var(--muted)}
+.card .meta{display:flex;justify-content:space-between;align-items:center;margin-top:auto;padding-top:6px;font-size:13px;color:var(--muted);font-variant-numeric:tabular-nums}
+.stars{color:var(--sun);letter-spacing:2px;font-size:19px}
+.cert-cta{margin-top:20px}
+
+/* play */
+.play{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr);gap:20px;align-items:start}
+.left{display:flex;flex-direction:column;gap:12px}
+.board{background:rgba(18,58,99,.7);border:2px solid rgba(234,244,255,.25);border-radius:16px;padding:8px}
+.board svg{width:100%;height:auto;max-height:82vh;display:block;touch-action:manipulation;-webkit-touch-callout:none;user-select:none;-webkit-user-select:none}
+.board.tap svg{cursor:crosshair;touch-action:none}
+.prompt{font-size:21px;font-weight:600;line-height:1.35;background:var(--ink-2);border-radius:14px;padding:14px 16px;border:2px solid rgba(234,244,255,.18)}
+.coord{font-family:var(--display);font-weight:400;color:var(--sun);font-size:1.2em;white-space:nowrap}
+.feedback{min-height:50px;padding:10px 14px;border-radius:12px;background:rgba(0,0,0,.22);font-size:16px;line-height:1.45;border-left:5px solid transparent}
+.feedback.fb-good{border-left-color:var(--good)}
+.feedback.fb-bad{border-left-color:var(--bad)}
+.feedback b{font-weight:800}
+.panel{background:var(--ink-2);border:2px solid rgba(234,244,255,.18);border-radius:16px;padding:18px;display:flex;flex-direction:column;gap:14px}
+.phead{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+.phead h2{font-family:var(--display);font-weight:400;font-size:26px;margin:2px 0 0}
+.phead .num{font-family:var(--display);color:var(--signal);font-size:13px}
+.skill{margin:-6px 0 0;color:var(--muted);font-size:14px}
+.timer{height:10px;background:rgba(0,0,0,.3);border-radius:99px;overflow:hidden}
+.timer i{display:block;height:100%;width:100%;background:linear-gradient(90deg,var(--signal),var(--sun))}
+.timer-lab{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;margin-bottom:-8px}
+.choices{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.btn{font-family:var(--display);font-size:19px;padding:12px 14px;border-radius:12px;border:2px solid var(--chalk);
+  background:transparent;color:var(--chalk);cursor:pointer;transition:background .12s,transform .12s}
+.btn:hover{background:rgba(234,244,255,.08)}
+.btn:active{transform:scale(.97)}
+.btn.primary{background:var(--signal);border-color:var(--signal);color:#241204}
+.btn.primary:hover{background:#ff9d5c}
+.btn.good{background:var(--good);border-color:var(--good);color:#06261b}
+.btn.bad{border-color:var(--bad);color:var(--bad);background:rgba(255,107,127,.08)}
+.btn.small{font-size:14px;padding:9px 12px}
+.btn.quiet{font-family:var(--body);font-weight:600;font-size:14px;border-color:rgba(234,244,255,.3);color:var(--muted)}
+.btn:disabled{cursor:default}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.stat{background:rgba(0,0,0,.22);border-radius:10px;padding:8px 6px;text-align:center}
+.stat b{display:block;font-family:var(--display);font-weight:400;font-size:22px;font-variant-numeric:tabular-nums}
+.stat span{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.1em}
+.shields{color:var(--good);letter-spacing:1px}
+.shields s{color:rgba(234,244,255,.25);text-decoration:none}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{font-family:var(--display);font-size:14px;padding:5px 9px;border-radius:8px;border:1.5px solid rgba(234,244,255,.3);color:var(--muted)}
+.chip.done{background:var(--good);color:#06261b;border-color:var(--good)}
+.chip.now{border-color:var(--sun);color:var(--sun);box-shadow:0 0 0 3px rgba(255,210,63,.25)}
+.log{list-style:none;margin:0;padding:0;font-size:15px;display:flex;flex-direction:column;gap:4px;font-variant-numeric:tabular-nums}
+.log li{padding:6px 10px;border-radius:8px;background:rgba(0,0,0,.2)}
+.hint{font-size:14px;color:var(--muted);line-height:1.45;margin:0}
+
+/* svg */
+.g-minor{stroke:rgba(170,210,255,.24);stroke-width:1}
+.g-faint{stroke:rgba(170,210,255,.1);stroke-width:1}
+.g-axis{stroke:var(--chalk);stroke-width:2.5}
+.g-lab{fill:var(--muted);font:600 13px var(--body);text-anchor:middle}
+.g-name{fill:var(--sun);font:20px var(--display)}
+.g-title{fill:var(--chalk);font:16px var(--display);text-anchor:middle}
+.hover-line{stroke:var(--sun);stroke-dasharray:4 4;stroke-width:1.5;opacity:.6}
+.guide{stroke-width:4;stroke-dasharray:7 6;stroke-linecap:round;fill:none}
+.laser{stroke:var(--signal);stroke-width:4;stroke-linecap:round;animation:fade .45s ease-out forwards}
+.bar{fill:var(--sun);transition:fill .2s}
+.bar.hl{fill:var(--signal)}
+.pulse{animation:pulse 1s ease-in-out infinite;transform-box:fill-box;transform-origin:center}
+.bob{animation:bob 1.4s ease-in-out infinite}
+.boom{animation:boom .7s ease-out forwards;transform-box:fill-box;transform-origin:center}
+.pop{animation:pop .35s ease-out;transform-box:fill-box;transform-origin:center}
+@keyframes pulse{50%{transform:scale(1.4)}}
+@keyframes bob{50%{transform:translateY(-4px)}}
+@keyframes boom{from{transform:scale(.2);opacity:1}to{transform:scale(2.6);opacity:0}}
+@keyframes pop{from{transform:scale(0)}70%{transform:scale(1.4)}to{transform:scale(1)}}
+@keyframes fade{to{opacity:0}}
+.shake{animation:shake .4s}
+@keyframes shake{20%{transform:translateX(-8px)}40%{transform:translateX(8px)}60%{transform:translateX(-5px)}80%{transform:translateX(5px)}}
+
+/* modal */
+.overlay{position:fixed;inset:0;background:rgba(5,15,30,.78);display:grid;place-items:center;z-index:20;padding:16px}
+.modal{background:var(--ink-2);border:3px solid var(--sun);border-radius:20px;padding:26px 22px;max-width:440px;width:100%;
+  text-align:center;display:flex;flex-direction:column;gap:14px;max-height:calc(100% - 20px);overflow:auto}
+.modal h2{font-family:var(--display);font-weight:400;font-size:30px;margin:0;text-wrap:balance}
+.modal p{margin:0;line-height:1.5}
+.bigstars{display:flex;justify-content:center;gap:10px}
+.bigstars svg{width:58px;height:58px}
+.bigstars svg:nth-child(2){transform:translateY(-10px)}
+.modal .row{display:flex;flex-direction:column;gap:10px}
+.cert{border:3px double var(--sun);border-radius:14px;padding:22px 16px;background:rgba(0,0,0,.2)}
+.cert .who{font-family:var(--display);font-size:30px;color:var(--sun);margin:8px 0;word-break:break-word}
+#confetti{position:fixed;inset:0;pointer-events:none;z-index:30;width:100%;height:100%}
+
+@media (max-width:820px){
+  .hero{grid-template-columns:1fr}
+  .top{position:static;padding:8px 12px}
+  .logo{font-size:18px}
+  .pill{font-size:12px;padding:5px 9px}
+  main{padding:12px 8px 40px}
+  .title{font-size:clamp(48px,17vw,80px)}
+  .lede{font-size:17px}
+  .sec{margin-top:28px}
+  /* phone game screen: one column, everything needed on one screen */
+  .play{display:flex;flex-direction:column;align-items:stretch;gap:8px}
+  .left,.panel{display:contents}
+  .phead{order:1;align-items:center;padding:0 4px}
+  .phead h2{font-size:19px;margin:0}
+  .phead .num,.skill,.timer-lab,.panel > .hint{display:none}
+  .timer{order:2;height:8px}
+  .stats{order:3;gap:6px}
+  .stat{padding:4px;display:flex;align-items:baseline;justify-content:center;gap:6px}
+  .stat b{font-size:17px}
+  .stat span{font-size:10px}
+  .prompt{order:4;font-size:17px;padding:10px 12px}
+  .board{order:5;padding:2px;border-radius:12px}
+  .feedback{order:6;font-size:15px;min-height:44px;padding:8px 12px}
+  #side{order:7}
+  #quit{order:8}
+  .choices{gap:6px;grid-template-columns:repeat(4,1fr)}
+  .choices .btn{font-size:15px;padding:14px 2px}
+  .btn{font-size:17px;padding:14px 10px}
+  .chip{font-size:13px;padding:4px 7px}
+  .log{font-size:14px}
+  .log li{padding:5px 8px}
+}
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation:none!important;transition:none!important}
+}
+</style>
+</head>
+<body>
+<header class="top">
+  <button class="logo" id="homeBtn" type="button">Grid Rescue</button>
+  <div class="hud-top">
+    <span class="pill" id="rankPill"></span>
+    <span class="pill star" id="starPill"></span>
+    <button class="pill" id="soundBtn" type="button" aria-pressed="true">Sound on</button>
+  </div>
+</header>
+<main id="main"></main>
+<div id="modal"></div>
+<canvas id="confetti"></canvas>
+
+<script>
+/* ---------- basics ---------- */
+const N = 10, OX = 44, OY = 416, CELL = 37;
+const px = x => OX + x * CELL, py = y => OY - y * CELL;
+const NS = 'http://www.w3.org/2000/svg';
+const $ = s => document.querySelector(s);
+const rnd = (a, b) => a + Math.floor(Math.random() * (b - a + 1));
+const shuffle = a => { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+const pair = (x, y) => `(${x}, ${y})`;
+const C = (x, y) => `<span class="coord">${pair(x, y)}</span>`;
+const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+function el(tag, attrs = {}, parent) {
+  const e = document.createElementNS(NS, tag);
+  for (const k in attrs) e.setAttribute(k, attrs[k]);
+  if (parent) parent.appendChild(e);
+  return e;
+}
+function txt(parent, x, y, s, cls, extra = {}) { const t = el('text', Object.assign({ x, y, class: cls }, extra), parent); t.textContent = s; return t; }
+
+/* ---------- saved progress ---------- */
+let S = { pilot: '', stars: [0, 0, 0, 0, 0], best: [0, 0, 0, 0, 0], sound: true };
+function save() { try { localStorage.setItem('gridRescue', JSON.stringify(S)); } catch (e) {} }
+function load() {
+  try { const d = JSON.parse(localStorage.getItem('gridRescue') || 'null'); if (d && Array.isArray(d.stars)) S = Object.assign(S, d); } catch (e) {}
+}
+const RANKS = [[0, 'Cadet'], [3, 'Pilot'], [6, 'Navigator'], [9, 'Captain'], [12, 'Commander'], [15, 'Galaxy Legend']];
+const totalStars = () => S.stars.reduce((a, b) => a + b, 0);
+const rank = () => { let r = RANKS[0][1]; for (const [n, t] of RANKS) if (totalStars() >= n) r = t; return r; };
+
+/* ---------- sound ---------- */
+let AC = null;
+function ctx() { AC = AC || new (window.AudioContext || window.webkitAudioContext)(); if (AC.state === 'suspended') AC.resume(); return AC; }
+function tone(f, t0, dur, type, vol) {
+  const a = ctx(), o = a.createOscillator(), g = a.createGain();
+  o.type = type; o.frequency.setValueAtTime(f, t0);
+  g.gain.setValueAtTime(vol, t0); g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+  o.connect(g).connect(a.destination); o.start(t0); o.stop(t0 + dur + 0.02); return o;
+}
+function play(notes, dur = 0.09, type = 'triangle', vol = 0.08) {
+  if (!S.sound) return;
+  try { const t = ctx().currentTime; notes.forEach((f, i) => tone(f, t + i * dur, dur * 1.2, type, vol)); } catch (e) {}
+}
+const sfx = {
+  good: () => play([660, 990], 0.08),
+  bad: () => play([210, 150], 0.14, 'sawtooth', 0.05),
+  ping: () => play([880], 0.07, 'sine', 0.07),
+  win: () => play([523, 659, 784, 1047, 1319], 0.1),
+  laser() { if (!S.sound) return; try { const a = ctx(); const o = tone(1500, a.currentTime, 0.2, 'square', 0.035); o.frequency.exponentialRampToValueAtTime(180, a.currentTime + 0.2); } catch (e) {} }
+};
+
+/* ---------- confetti ---------- */
+function confetti() {
+  if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const c = $('#confetti'), g = c.getContext('2d');
+  c.width = innerWidth; c.height = innerHeight;
+  const cols = ['#ff8a3d', '#ffd23f', '#5be3b0', '#eaf4ff'];
+  const ps = Array.from({ length: 160 }, () => ({ x: innerWidth / 2, y: innerHeight / 3, vx: (Math.random() - 0.5) * 16, vy: -Math.random() * 13 - 4, r: Math.random() * 7 + 4, c: cols[rnd(0, 3)], a: Math.random() * 6 }));
+  let t = 0;
+  (function step() {
+    g.clearRect(0, 0, c.width, c.height);
+    for (const p of ps) { p.vy += 0.33; p.x += p.vx; p.y += p.vy; p.a += 0.2; g.save(); g.translate(p.x, p.y); g.rotate(p.a); g.fillStyle = p.c; g.fillRect(-p.r / 2, -p.r / 4, p.r, p.r / 2); g.restore(); }
+    if (++t < 170) requestAnimationFrame(step); else g.clearRect(0, 0, c.width, c.height);
+  })();
+}
+
+/* ---------- coordinate grid ---------- */
+function makeGrid(host) {
+  host.innerHTML = '';
+  const svg = el('svg', { viewBox: '0 0 460 460', role: 'img', 'aria-label': 'Coordinate grid, x from 0 to 10 and y from 0 to 10' }, host);
+  const defs = el('defs', {}, svg);
+  const mk = el('marker', { id: 'ah' + Math.random().toString(36).slice(2, 7), viewBox: '0 0 10 10', refX: 5, refY: 5, markerWidth: 5, markerHeight: 5, orient: 'auto-start-reverse' }, defs);
+  el('path', { d: 'M0,0 L10,5 L0,10 z', fill: 'var(--chalk)' }, mk);
+  svg.arrowId = mk.id;
+  const g = el('g', {}, svg);
+  for (let i = 0; i <= N; i++) {
+    el('line', { x1: px(i), y1: py(0), x2: px(i), y2: py(N), class: 'g-minor' }, g);
+    el('line', { x1: px(0), y1: py(i), x2: px(N), y2: py(i), class: 'g-minor' }, g);
+    txt(g, px(i), py(0) + 24, i, 'g-lab');
+    if (i > 0) txt(g, px(0) - 18, py(i) + 5, i, 'g-lab');
+  }
+  el('line', { x1: px(0), y1: py(0), x2: px(N) + 20, y2: py(0), class: 'g-axis' }, g);
+  el('line', { x1: px(0), y1: py(0), x2: px(0), y2: py(N) - 20, class: 'g-axis' }, g);
+  el('path', { d: `M${px(N) + 30},${py(0)} l-12,-7 v14 z`, fill: 'var(--chalk)' }, g);
+  el('path', { d: `M${px(0)},${py(N) - 30} l-7,12 h14 z`, fill: 'var(--chalk)' }, g);
+  txt(g, px(N) + 26, py(0) + 28, 'x', 'g-name', { 'text-anchor': 'middle', fill: 'var(--signal)', style: 'fill:var(--signal)' });
+  txt(g, px(0) - 26, py(N) - 18, 'y', 'g-name', { 'text-anchor': 'middle' });
+  svg.L = { marks: el('g', {}, svg), fx: el('g', {}, svg), hover: el('g', {}, svg) };
+  return svg;
+}
+function svgPoint(svg, e) { const p = svg.createSVGPoint(); p.x = e.clientX; p.y = e.clientY; return p.matrixTransform(svg.getScreenCTM().inverse()); }
+const COARSE = matchMedia('(pointer: coarse)').matches;
+function attachTap(svg, onTap) {
+  const hv = svg.L.hover;
+  let aiming = false, cur = null;
+  const snap = e => {
+    const p = svgPoint(svg, e);
+    const x = Math.round((p.x - OX) / CELL), y = Math.round((OY - p.y) / CELL);
+    if (x < 0 || y < 0 || x > N || y > N) return null;
+    if (Math.hypot(p.x - px(x), p.y - py(y)) > CELL * 0.6) return null;
+    return { x, y };
+  };
+  const show = s => {
+    hv.innerHTML = '';
+    if (!s || !G || G.busy) return;
+    el('line', { x1: px(s.x), y1: py(0), x2: px(s.x), y2: py(s.y), class: 'hover-line' }, hv);
+    el('line', { x1: px(0), y1: py(s.y), x2: px(s.x), y2: py(s.y), class: 'hover-line' }, hv);
+    el('circle', { cx: px(s.x), cy: py(s.y), r: aiming && COARSE ? 15 : 8, fill: aiming ? 'rgba(255,210,63,.18)' : 'none', stroke: 'var(--sun)', 'stroke-width': 2.5 }, hv);
+  };
+  svg.addEventListener('pointerdown', e => {
+    if (!G || G.busy) return;
+    e.preventDefault();
+    aiming = true; cur = snap(e); show(cur);
+    try { svg.setPointerCapture(e.pointerId); } catch (err) {}
+  });
+  svg.addEventListener('pointermove', e => {
+    const s = snap(e);
+    if (aiming) cur = s;
+    show(s);
+  });
+  svg.addEventListener('pointerup', e => {
+    if (!aiming) return;
+    aiming = false;
+    const s = snap(e);
+    hv.innerHTML = '';
+    if (s && G && !G.busy) onTap(s.x, s.y);
+  });
+  svg.addEventListener('pointercancel', () => { aiming = false; hv.innerHTML = ''; });
+  svg.addEventListener('pointerleave', () => { if (!aiming) hv.innerHTML = ''; });
+  svg.addEventListener('contextmenu', e => e.preventDefault());
+}
+/* across-then-up guide lines */
+function guides(g, x, y, ring = 'var(--good)') {
+  if (x > 0) el('line', { x1: px(0), y1: py(0), x2: px(x), y2: py(0), class: 'guide', stroke: 'var(--signal)' }, g);
+  if (y > 0) el('line', { x1: px(x), y1: py(0), x2: px(x), y2: py(y), class: 'guide', stroke: 'var(--sun)' }, g);
+  el('circle', { cx: px(x), cy: py(y), r: 11, fill: 'none', stroke: ring, 'stroke-width': 3, class: 'pulse' }, g);
+}
+function dot(g, x, y, fill = 'var(--signal)', r = 6, cls = 'pop') { return el('circle', { cx: px(x), cy: py(y), r, fill, stroke: '#0b2545', 'stroke-width': 2, class: cls }, g); }
+function boom(g, x, y, color = 'var(--sun)') {
+  for (const [r, c] of [[14, color], [22, 'var(--signal)']]) el('circle', { cx: px(x), cy: py(y), r, fill: 'none', stroke: c, 'stroke-width': 4, class: 'boom' }, g);
+  for (let i = 0; i < 8; i++) {
+    const a = i * Math.PI / 4, x1 = px(x) + Math.cos(a) * 10, y1 = py(y) + Math.sin(a) * 10;
+    el('line', { x1, y1, x2: x1 + Math.cos(a) * 16, y2: y1 + Math.sin(a) * 16, stroke: color, 'stroke-width': 3, 'stroke-linecap': 'round', class: 'boom' }, g);
+  }
+}
+function drawBot(g, x, y) {
+  const outer = el('g', { transform: `translate(${px(x)},${py(y)})` }, g);
+  el('circle', { cx: 0, cy: 0, r: 12, fill: 'none', stroke: 'var(--good)', 'stroke-width': 2.5, class: 'pulse' }, outer);
+  el('circle', { cx: 0, cy: 0, r: 6, fill: 'var(--good)', stroke: '#0b2545', 'stroke-width': 2 }, outer);
+  const b = el('g', { class: 'bob' }, outer);
+  const body = el('g', { transform: 'translate(0,-34)' }, b);
+  el('line', { x1: 0, y1: 10, x2: 0, y2: 22, stroke: 'var(--good)', 'stroke-width': 2, 'stroke-dasharray': '2 3' }, body);
+  el('line', { x1: 0, y1: -10, x2: 0, y2: -17, stroke: 'var(--chalk)', 'stroke-width': 2 }, body);
+  el('circle', { cx: 0, cy: -18, r: 3.5, fill: 'var(--signal)' }, body);
+  el('rect', { x: -12, y: -10, width: 24, height: 19, rx: 6, fill: 'var(--chalk)', stroke: '#0b2545', 'stroke-width': 2 }, body);
+  el('circle', { cx: -5, cy: -1, r: 3, fill: '#0b2545' }, body);
+  el('circle', { cx: 5, cy: -1, r: 3, fill: '#0b2545' }, body);
+}
+function drawBase(g, x, y) {
+  const b = el('g', { transform: `translate(${px(x)},${py(y)})`, class: 'pop' }, g);
+  el('path', { d: 'M-16,6 a16,15 0 0 1 32,0 z', fill: 'var(--bad)', stroke: '#0b2545', 'stroke-width': 2 }, b);
+  el('rect', { x: -19, y: 5, width: 38, height: 6, rx: 3, fill: 'var(--chalk)' }, b);
+  el('line', { x1: 0, y1: -9, x2: 0, y2: -24, stroke: 'var(--chalk)', 'stroke-width': 2 }, b);
+  el('path', { d: 'M0,-24 l12,4 l-12,4 z', fill: 'var(--sun)' }, b);
+}
+
+/* ---------- game runtime ---------- */
+let G = null;
+const later = (fn, ms) => { const id = setTimeout(fn, ms); if (G) G.timers.push(id); };
+function clearTimers() { if (G) { G.timers.forEach(clearTimeout); G.timers = []; cancelAnimationFrame(G.raf); } }
+function prompt(html) { $('#prompt').innerHTML = html; }
+function say(html, kind = '') { const f = $('#fb'); f.className = 'feedback' + (kind ? ' fb-' + kind : ''); f.innerHTML = html; }
+function side(html) { $('#side').innerHTML = html; }
+function M() { return MISSIONS[G.m]; }
+function hud() {
+  const m = M();
+  $('#sc').textContent = G.score;
+  $('#st').textContent = G.streak >= 5 ? 'x3' : G.streak >= 3 ? 'x2' : 'x1';
+  $('#sh').innerHTML = '◆'.repeat(Math.max(0, G.shields)) + '<s>' + '◇'.repeat(m.shields - Math.max(0, G.shields)) + '</s>';
+  $('#rd').textContent = `${m.unit} ${Math.min(G.round + 1, m.rounds)} / ${m.rounds}`;
+}
+function startTimer(sec) {
+  G.tLen = sec; G.t0 = performance.now(); G.stopT = false;
+  const bar = $('#tbar');
+  cancelAnimationFrame(G.raf);
+  const tick = () => {
+    if (!G || G.stopT) return;
+    const left = Math.max(0, G.tLen - (performance.now() - G.t0) / 1000);
+    bar.style.width = (left / G.tLen * 100) + '%';
+    if (left > 0) G.raf = requestAnimationFrame(tick);
+  };
+  tick();
+}
+function timeBonus() { G.stopT = true; const left = Math.max(0, G.tLen - (performance.now() - G.t0) / 1000); return Math.round(left) * 10; }
+function good(base, msg) {
+  G.streak++;
+  const mult = G.streak >= 5 ? 3 : G.streak >= 3 ? 2 : 1;
+  const pts = base * mult;
+  G.score += pts;
+  sfx.good();
+  say(`<b>+${pts}</b>${mult > 1 ? ` <b style="color:var(--sun)">COMBO x${mult}!</b>` : ''} ${msg}`, 'good');
+  hud();
+}
+function bad(msg) {
+  G.streak = 0; G.mistakes++; G.shields--;
+  sfx.bad();
+  say(msg, 'bad');
+  hud();
+  const b = $('#board'); b.classList.remove('shake'); void b.offsetWidth; b.classList.add('shake');
+  return G.shields <= 0;
+}
+function next() {
+  G.round++;
+  if (G.round >= M().rounds) return finish(true);
+  MIS[G.m].round(); hud();
+}
+function choices(opts, onPick, cols = 2) {
+  const wrap = document.createElement('div');
+  wrap.className = 'choices';
+  if (cols === 1) wrap.style.gridTemplateColumns = '1fr';
+  opts.forEach(o => {
+    const b = document.createElement('button');
+    b.type = 'button'; b.className = 'btn'; b.textContent = o.label; b.dataset.key = o.key;
+    b.onclick = () => { if (!G || G.busy) return; G.busy = true; onPick(o.key, b); };
+    wrap.appendChild(b);
+  });
+  $('#side').innerHTML = ''; $('#side').appendChild(wrap);
+}
+function markChoice(key) { const b = document.querySelector(`#side .btn[data-key="${key}"]`); if (b) b.classList.add('good'); }
+function clearLayers() { if (G.svg) { G.svg.L.marks.innerHTML = ''; G.svg.L.fx.innerHTML = ''; } }
+
+/* ---------- missions ---------- */
+const MISSIONS = [
+  { id: 0, name: 'Laser Lock', unit: 'Round', rounds: 8, shields: 3, timed: true, grid: true,
+    skill: 'Plot a point from its ordered pair', blurb: 'Asteroids are hiding at secret points. Tap the exact spot to blast them.' },
+  { id: 1, name: 'Radar Read', unit: 'Round', rounds: 8, shields: 3, timed: true, grid: true,
+    skill: 'Name the ordered pair of a point', blurb: 'Lost robots are beeping on the radar. Read their coordinates to beam them up.' },
+  { id: 2, name: 'Hidden Base', unit: 'Base', rounds: 3, shields: 3, timed: false, grid: true,
+    skill: 'Use x and y clues to find a point', blurb: 'An enemy base is invisible. Scan the grid and follow the left, right, up, down clues.' },
+  { id: 3, name: 'Fuel Graph', unit: 'Question', rounds: 6, shields: 3, timed: false, grid: false,
+    skill: 'Read and compare a bar graph', blurb: 'Your ship needs fuel. Read the crystal graph to choose the right planets.' },
+  { id: 4, name: 'Star Map', unit: 'Picture', rounds: 3, shields: 5, timed: false, grid: true,
+    skill: 'Plot points in order to draw a shape', blurb: 'Plot the stars in order and connect them to reveal three mystery pictures.' }
+];
+
+const MIS = [];
+
+/* 1. Laser Lock: plot the point */
+MIS[0] = {
+  start() { G.used = new Set(); },
+  round() {
+    clearLayers();
+    let x, y;
+    do { x = rnd(0, N); y = rnd(0, N); } while (G.used.has(x + ',' + y) || (x === y && Math.random() < 0.85) || (x === 0 && y === 0));
+    G.used.add(x + ',' + y); G.t = { x, y };
+    prompt(`Blast the asteroid hiding at ${C(x, y)}`);
+    side(`<p class="hint">${COARSE ? 'Touch the grid to aim, slide your finger to adjust, then lift to fire.' : 'Click the exact point where the grid lines cross.'} The faster you lock on, the bigger your speed bonus.</p>`);
+    say(G.round < 2 ? `Tip: start at 0. Go <b>across</b> to ${x}, then <b>up</b> to ${y}.` : 'Lock on and fire!');
+    G.busy = false; startTimer(12);
+  },
+  tap(x, y) {
+    G.busy = true;
+    const L = G.svg.L, t = G.t;
+    sfx.laser();
+    el('line', { x1: px(0) - 30, y1: py(0) + 30, x2: px(x), y2: py(y), class: 'laser' }, L.fx);
+    if (x === t.x && y === t.y) {
+      const b = timeBonus();
+      boom(L.fx, x, y); dot(L.marks, x, y, 'var(--good)');
+      good(100 + b, `Direct hit at ${C(x, y)}!${b ? ` Speed bonus included.` : ''}`);
+      later(next, 1300);
+    } else {
+      G.stopT = true;
+      dot(L.marks, x, y, 'var(--bad)', 5);
+      guides(L.marks, t.x, t.y);
+      const swapped = x === t.y && y === t.x;
+      const out = bad(swapped
+        ? `So close! You swapped them and hit ${C(x, y)}. The first number (x) goes <b>across</b>, the second (y) goes <b>up</b>.`
+        : `You hit ${C(x, y)}. The asteroid was at ${C(t.x, t.y)}: across ${t.x}, then up ${t.y}.`);
+      later(out ? () => finish(false) : next, 2800);
+    }
+  }
+};
+
+/* 2. Radar Read: name the point */
+function pairOptions(x, y) {
+  const m = new Map();
+  const add = (a, b) => { if (a >= 0 && b >= 0 && a <= N && b <= N && !m.has(a + ',' + b)) m.set(a + ',' + b, [a, b]); };
+  add(x, y); if (x !== y) add(y, x);
+  for (const [a, b] of shuffle([[x + 1, y], [x - 1, y], [x, y + 1], [x, y - 1], [x + 1, y + 1], [x - 1, y - 1], [y + 1, x], [x + 2, y], [x, y - 2]])) {
+    if (m.size >= 4) break; add(a, b);
+  }
+  return shuffle([...m.values()]);
+}
+MIS[1] = {
+  start() { G.used = new Set(); },
+  round() {
+    clearLayers();
+    let x, y;
+    do { x = rnd(0, N); y = rnd(0, 9); } while (G.used.has(x + ',' + y) || (x === y && Math.random() < 0.85) || (x === 0 && y === 0));
+    G.used.add(x + ',' + y); G.t = { x, y };
+    drawBot(G.svg.L.marks, x, y);
+    prompt(`A lost robot is beeping! What are its coordinates?`);
+    say(G.round < 2 ? 'Tip: count <b>across</b> the bottom first for x, then <b>up</b> the side for y.' : 'Pick the right ordered pair to beam it up.');
+    choices(pairOptions(x, y).map(([a, b]) => ({ key: a + ',' + b, label: pair(a, b) })), (key, btn) => {
+      const t = G.t;
+      if (key === t.x + ',' + t.y) {
+        btn.classList.add('good');
+        const b = timeBonus();
+        guides(G.svg.L.fx, t.x, t.y);
+        good(100 + b, `Robot rescued from ${C(t.x, t.y)}!`);
+        later(next, 1500);
+      } else {
+        G.stopT = true;
+        btn.classList.add('bad'); markChoice(t.x + ',' + t.y);
+        guides(G.svg.L.fx, t.x, t.y);
+        const [a, b] = key.split(',').map(Number);
+        const out = bad(a === t.y && b === t.x
+          ? `Swapped! The robot is <b>${t.x} across</b> and <b>${t.y} up</b>, so it's ${C(t.x, t.y)}. Across first, then up.`
+          : `The robot is at ${C(t.x, t.y)}. Follow the orange line across (${t.x}), then the yellow line up (${t.y}).`);
+        later(out ? () => finish(false) : next, 3000);
+      }
+    });
+    G.busy = false; startTimer(12);
+  }
+};
+
+/* 3. Hidden Base: hot and cold with x and y clues */
+MIS[2] = {
+  start() {},
+  round() {
+    clearLayers();
+    G.s = { x: rnd(0, N), y: rnd(0, N) }; G.scans = 0; G.max = 6; G.tried = new Set(); G.log = [];
+    this.prompt();
+    side(`<ul class="log" id="log"><li>No scans yet. Try the middle, like ${C(5, 5)}.</li></ul>`);
+    say('Every scan gives two clues: <b>left or right</b> (that fixes x) and <b>up or down</b> (that fixes y).');
+    G.busy = false;
+  },
+  prompt() { prompt(`Find the hidden enemy base. Scans left: <span class="coord">${G.max - G.scans}</span>`); },
+  tap(x, y) {
+    const key = x + ',' + y, s = G.s, L = G.svg.L;
+    if (G.tried.has(key)) { say(`You already scanned ${C(x, y)}. Try a new spot!`); return; }
+    G.tried.add(key); G.scans++; this.prompt();
+    if (x === s.x && y === s.y) {
+      G.busy = true;
+      drawBase(L.marks, x, y); boom(L.fx, x, y, 'var(--bad)');
+      good(Math.max(100, 400 - 60 * (G.scans - 1)), `Base found at ${C(x, y)} in ${G.scans} scan${G.scans > 1 ? 's' : ''}!`);
+      G.log.unshift(`Scan ${G.scans}: ${C(x, y)} FOUND IT!`); this.renderLog();
+      later(next, 1800);
+      return;
+    }
+    sfx.ping();
+    const hx = s.x > x ? 'go RIGHT' : s.x < x ? 'go LEFT' : 'x is right ✓';
+    const hy = s.y > y ? 'go UP' : s.y < y ? 'go DOWN' : 'y is right ✓';
+    const sx = Math.sign(s.x - x), sy = Math.sign(s.y - y);
+    el('circle', { cx: px(x), cy: py(y), r: 7, fill: 'none', stroke: 'var(--chalk)', 'stroke-width': 2.5, class: 'pop' }, L.marks);
+    if (sx) el('line', { x1: px(x) + sx * 9, y1: py(y), x2: px(x) + sx * 24, y2: py(y), stroke: 'var(--signal)', 'stroke-width': 3, 'marker-end': `url(#${G.svg.arrowId})` }, L.marks);
+    if (sy) el('line', { x1: px(x), y1: py(y) - sy * 9, x2: px(x), y2: py(y) - sy * 24, stroke: 'var(--sun)', 'stroke-width': 3, 'marker-end': `url(#${G.svg.arrowId})` }, L.marks);
+    G.log.unshift(`Scan ${G.scans}: ${C(x, y)} → ${hx}, ${hy}`); this.renderLog();
+    if (G.scans >= G.max) {
+      G.busy = true;
+      drawBase(L.marks, s.x, s.y); guides(L.fx, s.x, s.y, 'var(--bad)');
+      const out = bad(`Out of scans! The base was hiding at ${C(s.x, s.y)}.`);
+      later(out ? () => finish(false) : next, 2800);
+    } else {
+      say(`Scan ${C(x, y)}: <b style="color:var(--signal)">${hx}</b> and <b style="color:var(--sun)">${hy}</b>.`);
+    }
+  },
+  renderLog() { $('#log').innerHTML = G.log.map(l => `<li>${l}</li>`).join(''); }
+};
+
+/* 4. Fuel Graph: bar graph reading */
+const PLANETS = ['Zorb', 'Mira', 'Kepi', 'Vela', 'Nox'];
+const BX = 70, BY = 390, BH = 320, BW = 370, VMAX = 20;
+const by = v => BY - v * (BH / VMAX);
+function drawBars(host, data) {
+  host.innerHTML = '';
+  const svg = el('svg', { viewBox: '0 0 460 460', role: 'img', 'aria-label': 'Bar graph of fuel crystals collected by each planet' }, host);
+  txt(svg, BX + BW / 2, 34, 'Fuel crystals per planet', 'g-title');
+  for (let v = 0; v <= VMAX; v++) {
+    el('line', { x1: BX, y1: by(v), x2: BX + BW, y2: by(v), class: v % 2 ? 'g-faint' : 'g-minor' }, svg);
+    if (v % 2 === 0) txt(svg, BX - 12, by(v) + 5, v, 'g-lab', { 'text-anchor': 'end' });
+  }
+  const slot = BW / data.length, w = slot * 0.56;
+  G.bars = {}; G.barTop = {};
+  data.forEach((d, i) => {
+    const x = BX + i * slot + (slot - w) / 2;
+    G.bars[d.name] = el('rect', { x, y: by(d.v), width: w, height: BY - by(d.v), rx: 4, class: 'bar' }, svg);
+    G.barTop[d.name] = { x, y: by(d.v) };
+    txt(svg, x + w / 2, BY + 24, d.name, 'g-lab', { style: 'fill:var(--chalk);font-size:14px' });
+  });
+  el('line', { x1: BX, y1: BY, x2: BX + BW, y2: BY, class: 'g-axis' }, svg);
+  el('line', { x1: BX, y1: BY, x2: BX, y2: by(VMAX) - 10, class: 'g-axis' }, svg);
+  txt(svg, BX + BW / 2, BY + 52, 'Planet', 'g-lab', { style: 'fill:var(--signal);font-size:14px' });
+  txt(svg, 22, BY - BH / 2, 'Number of crystals', 'g-lab', { transform: `rotate(-90 22 ${BY - BH / 2})`, style: 'fill:var(--sun);font-size:14px' });
+  svg.L = { fx: el('g', {}, svg) };
+  return svg;
+}
+function numOpts(v) {
+  const s = new Set([v]);
+  for (const c of shuffle([v + 1, v - 1, v + 2, v - 2, v + 3, v - 3, v + 4])) { if (s.size >= 4) break; if (c >= 0) s.add(c); }
+  return shuffle([...s]).map(n => ({ key: String(n), label: String(n) }));
+}
+function nameOpts(ans) { return shuffle([ans, ...shuffle(PLANETS.filter(p => p !== ans)).slice(0, 3)]).map(n => ({ key: n, label: n })); }
+function makeQ(type) {
+  const d = G.data, sorted = [...d].sort((a, b) => b.v - a.v);
+  const two = () => { let a, b; do { [a, b] = shuffle([...d]).slice(0, 2); } while (a.v === b.v); return a.v > b.v ? [a, b] : [b, a]; };
+  if (type === 'most') { const a = sorted[0]; return { q: `Which planet collected the <b>most</b> crystals?`, ans: a.name, opts: nameOpts(a.name), hl: [a.name], lines: [a.name], why: `${a.name} has the tallest bar: ${a.v} crystals.` }; }
+  if (type === 'least') { const a = sorted[4]; return { q: `Which planet collected the <b>fewest</b> crystals?`, ans: a.name, opts: nameOpts(a.name), hl: [a.name], lines: [a.name], why: `${a.name} has the shortest bar: only ${a.v} crystals.` }; }
+  if (type === 'value') { const a = d[rnd(0, 4)]; return { q: `How many crystals did <b>${a.name}</b> collect?`, ans: String(a.v), opts: numOpts(a.v), hl: [a.name], lines: [a.name], why: `The top of ${a.name}'s bar lines up with ${a.v} on the scale.${a.v % 2 ? ' It sits halfway between two numbered lines.' : ''}` }; }
+  if (type === 'diff') { const [a, b] = two(); return { q: `How many <b>more</b> crystals did ${a.name} collect than ${b.name}?`, ans: String(a.v - b.v), opts: numOpts(a.v - b.v), hl: [a.name, b.name], lines: [a.name, b.name], why: `${a.name} has ${a.v} and ${b.name} has ${b.v}. ${a.v} − ${b.v} = ${a.v - b.v}.` }; }
+  const [a, b] = shuffle([...d]).slice(0, 2);
+  return { q: `How many crystals did ${a.name} and ${b.name} collect <b>altogether</b>?`, ans: String(a.v + b.v), opts: numOpts(a.v + b.v), hl: [a.name, b.name], lines: [a.name, b.name], why: `${a.name} has ${a.v} and ${b.name} has ${b.v}. ${a.v} + ${b.v} = ${a.v + b.v}.` };
+}
+MIS[3] = {
+  start() {},
+  newGraph() {
+    let vals;
+    const ok = v => { const mx = Math.max(...v), mn = Math.min(...v); return v.filter(n => n === mx).length === 1 && v.filter(n => n === mn).length === 1 && mx - mn >= 5; };
+    do { vals = PLANETS.map(() => rnd(2, VMAX)); } while (!ok(vals));
+    G.data = PLANETS.map((name, i) => ({ name, v: vals[i] }));
+    G.qtypes = shuffle(['most', 'least', 'value', 'diff', 'total']);
+    G.svg = drawBars($('#board'), G.data);
+  },
+  round() {
+    if (G.round % 3 === 0) this.newGraph();
+    Object.values(G.bars).forEach(b => b.classList.remove('hl'));
+    G.svg.L.fx.innerHTML = '';
+    const q = makeQ(G.qtypes[G.round % 3]); G.q = q;
+    prompt(q.q);
+    say(G.round === 0 ? 'Tip: slide your eyes from the top of a bar straight across to the number scale.' : G.round === 3 ? 'New planets, new graph! Read it carefully.' : 'Read the graph and choose your answer.');
+    choices(q.opts, (key, btn) => {
+      q.hl.forEach(n => G.bars[n].classList.add('hl'));
+      q.lines.forEach(n => { const t = G.barTop[n]; el('line', { x1: BX, y1: t.y, x2: t.x, y2: t.y, class: 'guide', stroke: 'var(--signal)' }, G.svg.L.fx); });
+      if (key === q.ans) { btn.classList.add('good'); good(150, q.why); later(next, 2000); }
+      else { btn.classList.add('bad'); markChoice(q.ans); const out = bad(`Not quite. ${q.why}`); later(out ? () => finish(false) : next, 3200); }
+    });
+    G.busy = false;
+  }
+};
+
+/* 5. Star Map: connect the dots */
+const PICS = [
+  { name: 'ROCKET', pts: [[5, 10], [7, 7], [7, 4], [9, 1], [7, 2], [3, 2], [1, 1], [3, 4], [3, 7], [5, 10]] },
+  { name: 'FISH', pts: [[1, 5], [3, 7], [6, 7], [8, 5], [10, 7], [10, 3], [8, 5], [6, 3], [3, 3], [1, 5]] },
+  { name: 'STAR', pts: [[5, 10], [6, 7], [9, 7], [7, 5], [8, 2], [5, 4], [2, 2], [3, 5], [1, 7], [4, 7], [5, 10]] }
+];
+MIS[4] = {
+  start() {},
+  round() {
+    clearLayers();
+    G.pic = PICS[G.round]; G.step = 0;
+    prompt(`Mystery picture ${G.round + 1}: plot each star in order, starting with the yellow one.`);
+    this.chips();
+    say('Each new star you plot connects to the one before it. What will the picture be?');
+    G.busy = false;
+  },
+  chips() {
+    side(`<div class="chips">${G.pic.pts.map(([x, y], i) => `<span class="chip ${i < G.step ? 'done' : i === G.step ? 'now' : ''}">${pair(x, y)}</span>`).join('')}</div>`);
+  },
+  tap(x, y) {
+    const pts = G.pic.pts, [tx, ty] = pts[G.step], L = G.svg.L;
+    if (x === tx && y === ty) {
+      if (G.step > 0) { const [ax, ay] = pts[G.step - 1]; el('line', { x1: px(ax), y1: py(ay), x2: px(x), y2: py(y), stroke: 'var(--sun)', 'stroke-width': 4, 'stroke-linecap': 'round' }, L.fx); }
+      dot(L.marks, x, y, 'var(--sun)', 6);
+      G.step++; this.chips();
+      if (G.step >= pts.length) {
+        G.busy = true;
+        const poly = el('polygon', { points: pts.map(([a, b]) => `${px(a)},${py(b)}`).join(' '), fill: 'rgba(255,210,63,.28)', stroke: 'none', class: 'pop' }, L.fx);
+        L.fx.insertBefore(poly, L.fx.firstChild);
+        good(150, `Mystery solved: it's a <b>${G.pic.name}</b>!`);
+        sfx.win();
+        later(next, 2200);
+      } else {
+        good(50, `${C(x, y)} plotted.`);
+      }
+    } else {
+      dot(L.marks, x, y, 'var(--bad)', 4, 'boom');
+      const out = bad(x === ty && y === tx
+        ? `Swapped! You tapped ${C(x, y)}. For ${C(tx, ty)} go across ${tx} first, then up ${ty}.`
+        : `That's ${C(x, y)}. The next star is ${C(tx, ty)}: across ${tx}, up ${ty}.`);
+      if (out) { G.busy = true; later(() => finish(false), 2000); }
+    }
+  }
+};
+
+/* ---------- screens ---------- */
+function topbar() {
+  $('#rankPill').textContent = 'Rank: ' + rank();
+  $('#starPill').textContent = '★ ' + totalStars() + ' / 15';
+  $('#soundBtn').textContent = S.sound ? 'Sound on' : 'Sound off';
+  $('#soundBtn').setAttribute('aria-pressed', String(S.sound));
+}
+function starStr(n) { return '★'.repeat(n) + '☆'.repeat(3 - n); }
+function unlocked(i) { return i === 0 || S.stars[i - 1] > 0; }
+
+function renderHome() {
+  clearTimers(); G = null; closeModal(); topbar();
+  const cards = MISSIONS.map((m, i) => {
+    const lock = !unlocked(i);
+    return `<button type="button" class="card${lock ? ' locked' : ''}" data-m="${i}" ${lock ? 'aria-disabled="true"' : ''}>
+      <span class="num">Mission ${i + 1}${lock ? ' · Locked' : ''}</span>
+      <h3>${m.name}</h3>
+      <p>${m.blurb}</p>
+      <div class="meta"><span class="stars" aria-label="${S.stars[i]} of 3 stars">${starStr(S.stars[i])}</span><span>${lock ? 'Earn a star in Mission ' + i : 'Best ' + S.best[i]}</span></div>
+    </button>`;
+  }).join('');
+  $('#main').innerHTML = `
+    <section class="hero">
+      <div>
+        <p class="eyebrow">A coordinate graphing game for Grade 5</p>
+        <h1 class="title">Grid<br>Rescue</h1>
+        <p class="lede">Robots are lost all over the galaxy grid. Plot points, read coordinates and crack bar graphs to bring them home. Earn stars to rank up from Cadet to Galaxy Legend.</p>
+        <div class="namebox"><label for="pilot">Pilot name</label><input id="pilot" maxlength="20" autocomplete="off" placeholder="Type your name"></div>
+      </div>
+      <div class="board"><div id="demo"></div>
+        <p class="rule">${C(3, 5)} means go <b style="color:var(--signal)">across 3</b>, then <b style="color:var(--sun)">up 5</b>. Walk along the hall, then climb the stairs!</p>
+      </div>
+    </section>
+    <h2 class="sec">Mission map <small>${totalStars()} of 15 stars · ${rank()}</small></h2>
+    <div class="missions">${cards}</div>
+    ${totalStars() === 15 ? '<div class="cert-cta"><button type="button" class="btn primary" id="certBtn">See your Galaxy Legend certificate</button></div>' : ''}`;
+  const inp = $('#pilot'); inp.value = S.pilot;
+  inp.addEventListener('input', () => { S.pilot = inp.value.trim(); save(); });
+  const demo = makeGrid($('#demo'));
+  guides(demo.L.marks, 3, 5);
+  drawBot(demo.L.marks, 3, 5);
+  txt(demo.L.fx, px(1.5), py(0) - 10, 'across 3', 'g-lab', { style: 'fill:var(--signal);font-size:14px;font-weight:800' });
+  txt(demo.L.fx, px(3) + 16, py(2.5) + 5, 'up 5', 'g-lab', { 'text-anchor': 'start', style: 'fill:var(--sun);font-size:14px;font-weight:800' });
+  document.querySelectorAll('.card').forEach(c => c.addEventListener('click', () => { const i = +c.dataset.m; if (unlocked(i)) startMission(i); }));
+  if ($('#certBtn')) $('#certBtn').onclick = showCert;
+}
+
+function startMission(i) {
+  clearTimers(); closeModal();
+  const m = MISSIONS[i];
+  G = { m: i, round: 0, score: 0, streak: 0, mistakes: 0, shields: m.shields, busy: true, timers: [] };
+  $('#main').innerHTML = `
+    <div class="play">
+      <div class="left">
+        <div class="prompt" id="prompt"></div>
+        <div class="feedback" id="fb" aria-live="polite"></div>
+        <div class="board${m.grid ? ' tap' : ''}" id="board"></div>
+      </div>
+      <aside class="panel">
+        <div class="phead"><div><span class="num">Mission ${i + 1}</span><h2>${m.name}</h2></div><span class="pill" id="rd"></span></div>
+        <p class="skill">Skill: ${m.skill}</p>
+        ${m.timed ? '<div class="timer-lab">Speed bonus</div><div class="timer"><i id="tbar"></i></div>' : ''}
+        <div id="side"></div>
+        <div class="stats">
+          <div class="stat"><b id="sc">0</b><span>Score</span></div>
+          <div class="stat"><b id="st">x1</b><span>Combo</span></div>
+          <div class="stat"><b id="sh" class="shields"></b><span>Shields</span></div>
+        </div>
+        <p class="hint">Get 3 right in a row for a x2 combo, 5 in a row for x3. A mistake costs one shield.</p>
+        <button type="button" class="btn quiet" id="quit">Back to mission map</button>
+      </aside>
+    </div>`;
+  $('#quit').onclick = renderHome;
+  if (m.grid) { G.svg = makeGrid($('#board')); attachTap(G.svg, (x, y) => MIS[i].tap(x, y)); }
+  MIS[i].start(); MIS[i].round(); hud();
+  if (COARSE || innerWidth <= 820) $('.play').scrollIntoView({ block: 'start' }); else window.scrollTo({ top: 0 });
+}
+
+function starSVG(on) {
+  return `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2l2.9 6.6 7.1.6-5.4 4.7 1.6 7L12 17.3 5.8 20.9l1.6-7L2 9.2l7.1-.6z" fill="${on ? 'var(--sun)' : 'none'}" stroke="${on ? 'var(--sun)' : 'rgba(234,244,255,.35)'}" stroke-width="1.6" stroke-linejoin="round"/></svg>`;
+}
+function finish(ok) {
+  clearTimers(); G.busy = true; G.stopT = true;
+  const m = M(), i = m.id;
+  const stars = ok ? (G.mistakes === 0 ? 3 : G.mistakes <= Math.floor((m.shields - 1) / 2) ? 2 : 1) : 0;
+  const before = totalStars();
+  const newBest = ok && G.score > S.best[i];
+  if (ok) { S.best[i] = Math.max(S.best[i], G.score); S.stars[i] = Math.max(S.stars[i], stars); }
+  save(); topbar();
+  const rankUp = totalStars() > before && RANKS.some(([n]) => n > before && n <= totalStars());
+  const legend = before < 15 && totalStars() === 15;
+  if (ok) { sfx.win(); if (stars === 3 || rankUp) confetti(); } else sfx.bad();
+  const who = S.pilot ? esc(S.pilot) : 'Pilot';
+  const msg = ok
+    ? (stars === 3 ? `Flawless flying, ${who}! Not a single mistake.` : stars === 2 ? `Great job, ${who}! Play again with zero mistakes for 3 stars.` : `Mission complete, ${who}! Fewer mistakes earn more stars.`)
+    : `Your shields ran out, ${who}. Every pilot crashes sometimes. Try again!`;
+  openModal(`
+    <h2>${ok ? 'Mission complete!' : 'Shields down!'}</h2>
+    <div class="bigstars">${[1, 2, 3].map(n => starSVG(n <= stars)).join('')}</div>
+    <p>${msg}</p>
+    <p><b style="font-family:var(--display);font-weight:400;font-size:26px;color:var(--sun)">${G.score}</b> points${newBest ? ' · <b style="color:var(--good)">New best!</b>' : ''}</p>
+    ${rankUp ? `<p style="color:var(--signal);font-weight:800">Rank up! You are now a ${rank()}.</p>` : ''}
+    <div class="row">
+      ${legend ? '<button type="button" class="btn primary" id="mCert">Claim your certificate</button>' : ''}
+      ${ok && i < 4 ? `<button type="button" class="btn ${legend ? '' : 'primary'}" id="mNext">Next: ${MISSIONS[i + 1].name}</button>` : ''}
+      <button type="button" class="btn ${!ok ? 'primary' : ''}" id="mAgain">Play again</button>
+      <button type="button" class="btn quiet" id="mMap">Mission map</button>
+    </div>`);
+  if ($('#mNext')) $('#mNext').onclick = () => startMission(i + 1);
+  if ($('#mCert')) $('#mCert').onclick = showCert;
+  $('#mAgain').onclick = () => startMission(i);
+  $('#mMap').onclick = renderHome;
+}
+function showCert() {
+  const d = new Date().toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' });
+  openModal(`
+    <div class="cert">
+      <p class="eyebrow" style="margin:0">Certificate of Graphing Excellence</p>
+      <p>This certifies that</p>
+      <div class="who">${S.pilot ? esc(S.pilot) : 'Our Pilot'}</div>
+      <p>earned all 15 stars in Grid Rescue and holds the rank of</p>
+      <div class="who" style="font-size:24px;color:var(--signal)">Galaxy Legend</div>
+      <p style="color:var(--muted);font-size:14px">${d}</p>
+    </div>
+    <p class="hint">Take a screenshot to keep it or show your teacher!</p>
+    <button type="button" class="btn quiet" id="cClose">Close</button>`);
+  $('#cClose').onclick = () => { closeModal(); if (!G) renderHome(); else renderHome(); };
+}
+function openModal(html) {
+  $('#modal').innerHTML = `<div class="overlay" role="dialog" aria-modal="true"><div class="modal">${html}</div></div>`;
+  const b = $('#modal .btn'); if (b) b.focus();
+}
+function closeModal() { $('#modal').innerHTML = ''; }
+
+$('#homeBtn').onclick = renderHome;
+$('#soundBtn').onclick = () => { S.sound = !S.sound; save(); topbar(); if (S.sound) sfx.ping(); };
+
+/* ---------- boot ---------- */
+window.claude?.hot?.snapshot?.(() => ({ S }));
+function boot(d) {
+  if (d && d.S && Array.isArray(d.S.stars)) S = Object.assign(S, d.S); else load();
+  renderHome();
+}
+window.claude?.hot?.ready ? window.claude.hot.ready(boot) : boot(window.claude?.hot?.data ?? {});
+</script>
+</body>
+</html>
